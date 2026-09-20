@@ -128,7 +128,10 @@ public class SmtpReceiver extends SourceConnector {
             throw new ConnectorTaskException("Could not listen on " + (config.bindHost == null ? "" : config.bindHost + ":") + config.port + ": " + failure.getMessage(), failure);
         }
 
-        logger.info("SMTP Receiver of channel " + getChannelId() + " listens on port " + server.getPort() + (config.tlsMode == SmtpConfig.TlsMode.NONE ? "" : " (" + config.tlsMode + ")"));
+        // The engine's log level is ERROR by default, so also tell the dashboard: this shows in the connection log of the channel.
+        String listening = "Listening on " + (config.bindHost == null || config.bindHost.trim().isEmpty() ? "0.0.0.0" : config.bindHost) + ":" + server.getPort() + (config.tlsMode == SmtpConfig.TlsMode.NONE ? "" : " (" + config.tlsMode + ")");
+        eventController.dispatchEvent(new ConnectionStatusEvent(getChannelId(), getMetaDataId(), getSourceName(), ConnectionStatusEventType.INFO, listening));
+        logger.info("SMTP Receiver of channel " + getChannelId() + ": " + listening.substring(0, 1).toLowerCase() + listening.substring(1));
     }
 
     @Override
@@ -136,7 +139,9 @@ public class SmtpReceiver extends SourceConnector {
         SmtpServer s = server;
         server = null;
         if (s != null) {
+            int port = s.getPort();
             s.stop(STOP_GRACE_MILLIS);
+            eventController.dispatchEvent(new ConnectionStatusEvent(getChannelId(), getMetaDataId(), getSourceName(), ConnectionStatusEventType.INFO, "Stopped listening on port " + port));
         }
     }
 

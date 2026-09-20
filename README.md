@@ -135,6 +135,19 @@ When a channel is stopped or redeployed, clients that are only waiting for a com
 
 Any mail client or library works, for example Python's `smtplib`, `swaks`, or the SMTP Sender of another OIE channel.
 
+## Logging and status
+
+- The **dashboard** shows what the connector does: the connection count, the mail that is being received, and in the channel's connection log `Listening on 0.0.0.0:2587 (STARTTLS)` when the channel starts and `Stopped listening on port 2587` when it stops.
+- Problems that need attention (a keystore that cannot be loaded, a port that is in use, an error while processing a mail) are errors: they show in the dashboard and in `mirth.log` at the default log level.
+- Everything else is logged at INFO level, and the engine's default `log4j2.properties` uses `rootLogger = ERROR`, which hides it. To see failed logins, refused connections and the start-up line in `mirth.log`, add to `<OIE_HOME>/conf/log4j2.properties` and restart the engine:
+
+```
+logger.smtpreceiver.name = com.mirth.connect.connectors.smtpreceiver
+logger.smtpreceiver.level = INFO
+```
+
+- To check that the port is open without any log: `Get-NetTCPConnection -State Listen -LocalPort 2587` in PowerShell.
+
 ## Security notes
 
 - Passwords (users, keystore) are stored in the channel, like the password of any other connector. Anyone who can export the channel can read them.
