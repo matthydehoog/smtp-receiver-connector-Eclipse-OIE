@@ -1,7 +1,7 @@
 <connectorMetaData path="smtp-receiver">
 	<name>SMTP Receiver</name>
 	<author>X Connections</author>
-	<pluginVersion>1.0.0</pluginVersion>
+	<pluginVersion>1.0.1</pluginVersion>
 	<mirthVersion>4.6.0</mirthVersion>
 	<url>https://x-connections.info</url>
 	<description>This connector runs an SMTP server in a channel. Every mail that is sent to it is handed to the channel as an RFC 822 message (or as JSON), with the envelope in the source map. Supports authentication (PLAIN and LOGIN), STARTTLS and implicit TLS.</description>

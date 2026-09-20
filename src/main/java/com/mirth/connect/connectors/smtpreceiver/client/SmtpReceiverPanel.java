@@ -21,7 +21,6 @@ import com.mirth.connect.client.ui.components.MirthPasswordField;
 import com.mirth.connect.client.ui.components.MirthTextArea;
 import com.mirth.connect.client.ui.components.MirthTextField;
 import com.mirth.connect.client.ui.panels.connectors.ConnectorSettingsPanel;
-import com.mirth.connect.client.ui.panels.connectors.ListenerSettingsPanel;
 import com.mirth.connect.connectors.smtpreceiver.shared.SmtpReceiverProperties;
 import com.mirth.connect.donkey.model.channel.ConnectorProperties;
 
@@ -66,7 +65,7 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
     public ConnectorProperties getProperties() {
         SmtpReceiverProperties properties = new SmtpReceiverProperties();
 
-        listenerSettingsPanel.fillProperties(properties);
+        // Local Address and Local Port are not here: the client shows its own Listener Settings and fills them in.
         properties.setHostname(hostnameField.getText().trim());
         properties.setRequireAuthentication(requireAuthCheckBox.isSelected());
         properties.setUsers(usersArea.getText());
@@ -92,7 +91,6 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
     public void setProperties(ConnectorProperties properties) {
         SmtpReceiverProperties props = (SmtpReceiverProperties) properties;
 
-        listenerSettingsPanel.setProperties(props);
         hostnameField.setText(props.getHostname());
         requireAuthCheckBox.setSelected(props.isRequireAuthentication());
         usersArea.setText(props.getUsers());
@@ -123,9 +121,9 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
     public boolean checkProperties(ConnectorProperties properties, boolean highlight) {
         SmtpReceiverProperties props = (SmtpReceiverProperties) properties;
 
-        boolean valid = listenerSettingsPanel.checkProperties(props, highlight);
+        boolean valid = true;
 
-        // The port field belongs to the listener panel, which only highlights an empty port. A number out of range is refused here.
+        // The client checks that Local Address and Local Port are filled in; a number out of range is refused here.
         String port = props.getListenerConnectorProperties().getPort();
         if (!isNumber(port, 1, 65535) && !port.contains("${")) {
             valid = false;
@@ -168,7 +166,6 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
 
     @Override
     public void resetInvalidProperties() {
-        listenerSettingsPanel.resetInvalidProperties();
         usersArea.setBackground(null);
         keystorePathField.setBackground(null);
         maxSizeField.setBackground(null);
@@ -231,9 +228,6 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
 
     private void initComponents() {
         setBackground(UIConstants.BACKGROUND_COLOR);
-
-        listenerSettingsPanel = new ListenerSettingsPanel();
-        listenerSettingsPanel.setBackground(UIConstants.BACKGROUND_COLOR);
 
         hostnameLabel = new JLabel("Hostname:");
         hostnameField = new MirthTextField();
@@ -300,7 +294,6 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
         // No "fill": with it, MigLayout stretches every row and column over the free space.
         setLayout(new MigLayout("insets 0, novisualpadding, hidemode 3, gap 6 6", "6[]13[]"));
 
-        add(listenerSettingsPanel, "span 2, wrap");
         add(hostnameLabel, "right");
         add(hostnameField, "w 200!, wrap");
         add(requireAuthLabel, "right");
@@ -331,7 +324,6 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
         add(charsetField, "w 100!, wrap");
     }
 
-    private ListenerSettingsPanel listenerSettingsPanel;
     private JLabel hostnameLabel;
     private MirthTextField hostnameField;
     private JLabel requireAuthLabel;
