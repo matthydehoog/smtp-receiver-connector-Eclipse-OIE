@@ -92,10 +92,20 @@ public class SmtpReceiverPropertiesTest {
     }
 
     @Test
+    public void xmlIsAFormatAndAttachmentContentDefaultsToOn() throws Exception {
+        SmtpReceiverProperties p = new SmtpReceiverProperties();
+        assertTrue(p.isIncludeAttachmentContent());
+        p.setMessageFormat("XML");
+        assertEquals("XML", p.getMessageFormat());
+        p.setIncludeAttachmentContent(false);
+        assertFalse(p.isIncludeAttachmentContent());
+    }
+
+    @Test
     public void unknownModesFallBackToTheSafeChoice() {
         SmtpReceiverProperties p = new SmtpReceiverProperties();
         p.setTlsMode("SOMETHING");
-        p.setMessageFormat("XML");
+        p.setMessageFormat("YAML");
 
         assertEquals("NONE", p.getTlsMode());
         assertEquals("RFC822", p.getMessageFormat());

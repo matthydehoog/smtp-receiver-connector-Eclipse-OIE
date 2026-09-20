@@ -47,8 +47,8 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
 
     private static final String[] TLS_LABELS = { "None", "STARTTLS", "Implicit TLS (SMTPS)" };
     private static final String[] TLS_VALUES = { SmtpReceiverProperties.TLS_NONE, SmtpReceiverProperties.TLS_STARTTLS, SmtpReceiverProperties.TLS_IMPLICIT };
-    private static final String[] FORMAT_LABELS = { "RFC 822 message", "JSON" };
-    private static final String[] FORMAT_VALUES = { SmtpReceiverProperties.FORMAT_RFC822, SmtpReceiverProperties.FORMAT_JSON };
+    private static final String[] FORMAT_LABELS = { "Plain text (RFC 822)", "JSON", "XML" };
+    private static final String[] FORMAT_VALUES = { SmtpReceiverProperties.FORMAT_RFC822, SmtpReceiverProperties.FORMAT_JSON, SmtpReceiverProperties.FORMAT_XML };
 
     public SmtpReceiverPanel() {
         initComponents();
@@ -82,6 +82,7 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
         properties.setTimeout(timeoutField.getText().trim());
 
         properties.setMessageFormat(FORMAT_VALUES[Math.max(0, formatComboBox.getSelectedIndex())]);
+        properties.setIncludeAttachmentContent(attachmentsCheckBox.isSelected());
         properties.setCharset(charsetField.getText().trim());
 
         return properties;
@@ -107,6 +108,7 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
         timeoutField.setText(props.getTimeout());
 
         formatComboBox.setSelectedIndex(indexOf(FORMAT_VALUES, props.getMessageFormat()));
+        attachmentsCheckBox.setSelected(props.isIncludeAttachmentContent());
         charsetField.setText(props.getCharset());
 
         updateVisibility();
@@ -222,6 +224,10 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
         keyPasswordField.setVisible(tls);
         keystoreTypeLabel.setVisible(tls);
         keystoreTypeComboBox.setVisible(tls);
+        // Only JSON and XML take the mail apart, so only they have attachments to put in.
+        boolean parsed = formatComboBox.getSelectedIndex() > 0;
+        attachmentsLabel.setVisible(parsed);
+        attachmentsCheckBox.setVisible(parsed);
         revalidate();
         repaint();
     }
@@ -283,11 +289,17 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
         formatLabel = new JLabel("Message format:");
         formatComboBox = new MirthComboBox<String>();
         formatComboBox.setModel(new DefaultComboBoxModel<String>(FORMAT_LABELS));
-        formatComboBox.setToolTipText("RFC 822: the mail as it was sent (headers, empty line, body), also for the message in the channel. JSON: the envelope and the data as a list of lines.");
+        formatComboBox.setToolTipText("Plain text: the mail exactly as it was sent (headers, empty line, body). JSON or XML: the mail taken apart into subject, from, to, date, headers, text, html and attachments, with the envelope.");
+        formatComboBox.addActionListener(evt -> updateVisibility());
+
+        attachmentsLabel = new JLabel("Attachments:");
+        attachmentsCheckBox = new MirthCheckBox("Include the content (Base64)");
+        attachmentsCheckBox.setBackground(UIConstants.BACKGROUND_COLOR);
+        attachmentsCheckBox.setToolTipText("Put the attachments themselves in the message. Without this only their name, type and size are listed.");
 
         charsetLabel = new JLabel("Character set:");
         charsetField = new MirthTextField();
-        charsetField.setToolTipText("Used to turn the bytes of the mail into text, for example UTF-8 or ISO-8859-1");
+        charsetField.setToolTipText("Plain text: how the bytes of the mail become text, for example UTF-8 or ISO-8859-1. JSON and XML: used for parts of the mail that do not name their own character set.");
     }
 
     private void initLayout() {
@@ -320,6 +332,8 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
         add(timeoutField, "w 75!, wrap");
         add(formatLabel, "right");
         add(formatComboBox, "w 170!, wrap");
+        add(attachmentsLabel, "right");
+        add(attachmentsCheckBox, "wrap");
         add(charsetLabel, "right");
         add(charsetField, "w 100!, wrap");
     }
@@ -349,6 +363,8 @@ public class SmtpReceiverPanel extends ConnectorSettingsPanel {
     private MirthTextField maxRecipientsField;
     private JLabel timeoutLabel;
     private MirthTextField timeoutField;
+    private JLabel attachmentsLabel;
+    private MirthCheckBox attachmentsCheckBox;
     private JLabel formatLabel;
     private MirthComboBox<String> formatComboBox;
     private JLabel charsetLabel;

@@ -34,6 +34,7 @@ public class SmtpReceiverProperties extends ConnectorProperties implements Liste
 
     public static final String FORMAT_RFC822 = "RFC822";
     public static final String FORMAT_JSON = "JSON";
+    public static final String FORMAT_XML = "XML";
 
     public static final String DEFAULT_PORT = "2525";
 
@@ -56,6 +57,8 @@ public class SmtpReceiverProperties extends ConnectorProperties implements Liste
     private String timeout;
 
     private String messageFormat;
+    // Boolean, not boolean: a channel saved before this setting existed has null here, which must mean the default (on).
+    private Boolean includeAttachmentContent;
     private String charset;
 
     public SmtpReceiverProperties() {
@@ -78,6 +81,7 @@ public class SmtpReceiverProperties extends ConnectorProperties implements Liste
         timeout = "120";
 
         messageFormat = FORMAT_RFC822;
+        includeAttachmentContent = Boolean.TRUE;
         charset = "UTF-8";
     }
 
@@ -236,12 +240,25 @@ public class SmtpReceiverProperties extends ConnectorProperties implements Liste
         this.timeout = timeout;
     }
 
+    /** RFC822 (plain text: the mail as it was sent), JSON or XML (the mail taken apart). */
     public String getMessageFormat() {
-        return FORMAT_JSON.equals(messageFormat) ? FORMAT_JSON : FORMAT_RFC822;
+        if (FORMAT_JSON.equals(messageFormat) || FORMAT_XML.equals(messageFormat)) {
+            return messageFormat;
+        }
+        return FORMAT_RFC822;
     }
 
     public void setMessageFormat(String messageFormat) {
         this.messageFormat = messageFormat;
+    }
+
+    /** JSON and XML only: put the attachments themselves (Base64) in the message, not just their name, type and size. */
+    public boolean isIncludeAttachmentContent() {
+        return includeAttachmentContent == null || includeAttachmentContent;
+    }
+
+    public void setIncludeAttachmentContent(boolean includeAttachmentContent) {
+        this.includeAttachmentContent = includeAttachmentContent;
     }
 
     public String getCharset() {
@@ -259,7 +276,7 @@ public class SmtpReceiverProperties extends ConnectorProperties implements Liste
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(hostname, requireAuthentication, tlsMode, maxMessageSize, maxConnections, messageFormat);
+        return java.util.Objects.hash(hostname, requireAuthentication, tlsMode, maxMessageSize, maxConnections, messageFormat, includeAttachmentContent);
     }
 
     // @formatter:off
@@ -285,6 +302,7 @@ public class SmtpReceiverProperties extends ConnectorProperties implements Liste
         purgedProperties.put("requireAuthentication", requireAuthentication);
         purgedProperties.put("tlsMode", getTlsMode());
         purgedProperties.put("messageFormat", getMessageFormat());
+        purgedProperties.put("includeAttachmentContent", isIncludeAttachmentContent());
         purgedProperties.put("maxMessageSize", getMaxMessageSize());
         purgedProperties.put("maxConnections", getMaxConnections());
         return purgedProperties;

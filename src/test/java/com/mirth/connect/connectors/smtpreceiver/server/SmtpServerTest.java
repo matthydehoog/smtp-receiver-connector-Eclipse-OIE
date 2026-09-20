@@ -1164,4 +1164,37 @@ public class SmtpServerTest {
         }
         assertEquals(0, server.activeConnections());
     }
+
+    @Test
+    public void aMailWithAnAttachmentBecomesJsonAndXml() throws Exception {
+        int port = start();
+        Session session = session(port, new Properties());
+        MimeMessage m = mail(session, "Jan <jan@bedrijf.nl>", "Résumé", "Hello €", "a@x.nl");
+        jakarta.mail.internet.MimeBodyPart body = new jakarta.mail.internet.MimeBodyPart();
+        body.setText("Hello €", "UTF-8");
+        jakarta.mail.internet.MimeBodyPart file = new jakarta.mail.internet.MimeBodyPart();
+        file.setDataHandler(new jakarta.activation.DataHandler(new jakarta.mail.util.ByteArrayDataSource(new byte[] { 0, 1, 2, (byte) 255 }, "application/octet-stream")));
+        file.setFileName("data.bin");
+        jakarta.mail.internet.MimeMultipart multi = new jakarta.mail.internet.MimeMultipart();
+        multi.addBodyPart(body);
+        multi.addBodyPart(file);
+        m.setContent(multi);
+        send(port, m);
+
+        assertEquals(1, received.size());
+        String json = SmtpMessageFormatter.format(received.get(0), "JSON", StandardCharsets.UTF_8, true);
+        com.google.gson.JsonObject o = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+        assertEquals("Résumé", o.get("subject").getAsString());
+        assertEquals("jan@bedrijf.nl", o.getAsJsonArray("from").get(0).getAsJsonObject().get("address").getAsString());
+        assertTrue(o.get("text").getAsString().contains("Hello €"));
+        com.google.gson.JsonObject a = o.getAsJsonArray("attachments").get(0).getAsJsonObject();
+        assertEquals("data.bin", a.get("filename").getAsString());
+        assertEquals(4, a.get("size").getAsInt());
+        assertEquals(java.util.Arrays.toString(new byte[] { 0, 1, 2, (byte) 255 }), java.util.Arrays.toString(Base64.getDecoder().decode(a.get("content").getAsString())));
+
+        String xml = SmtpMessageFormatter.format(received.get(0), "XML", StandardCharsets.UTF_8, true);
+        org.w3c.dom.Document doc = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+        assertEquals("Résumé", doc.getElementsByTagName("subject").item(0).getTextContent());
+        assertEquals("data.bin", ((org.w3c.dom.Element) doc.getElementsByTagName("attachment").item(0)).getAttribute("filename"));
+    }
 }

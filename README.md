@@ -1,6 +1,6 @@
 # SMTP Receiver for Eclipse OIE
 
-A **source connector type** for [Eclipse Open Integration Engine](https://openintegrationengine.org/) (tested against **4.6.0**) that runs an **SMTP server** in a channel. Mail that is sent to it is handed to the channel as an RFC 822 message (or as JSON). Choose "SMTP Receiver" as the Source of a channel in the Swing client or the web administrator.
+A **source connector type** for [Eclipse Open Integration Engine](https://openintegrationengine.org/) (tested against **4.6.0**) that runs an **SMTP server** in a channel. Mail that is sent to it is handed to the channel as plain text (the mail as it was sent), or as JSON or XML with the mail taken apart: subject, sender, recipients, text, HTML and attachments. Choose "SMTP Receiver" as the Source of a channel in the Swing client or the web administrator.
 
 > Community extension. It is not part of, or endorsed by, the Eclipse OIE project.
 
@@ -14,7 +14,7 @@ It is the counterpart of the built-in *SMTP Sender*, and a replacement for the d
 - **Several clients at once**, several mails per connection, pipelining, `8BITMIME`, `SIZE`, enhanced status codes.
 - The **answer to the sender follows the channel**: `250` only after the channel has accepted the mail, `451` (try again later) when it could not be processed, so the sender keeps the mail.
 - Limits: message size, connections, recipients per mail, idle timeout.
-- The mail arrives **unchanged**: headers, the empty line, the body, 8-bit data and lines that start with a dot are all intact. The envelope (who sent it, to whom, from where, logged in as whom) is in the source map.
+- As plain text the mail arrives **unchanged**: headers, the empty line, the body, 8-bit data and lines that start with a dot are all intact. The envelope (who sent it, to whom, from where, logged in as whom) is in the source map. Or choose **JSON** or **XML** and get the mail taken apart: subject, from, to, text, HTML and attachments.
 
 ## Install
 
@@ -39,8 +39,9 @@ If the installer refuses because the extension already exists, uninstall the old
 | Max connections | More clients get `421` and are asked to try again | 10 |
 | Max recipients | Per mail. More get `452` | 100 |
 | Timeout (seconds) | A client that stays silent this long is disconnected | 120 |
-| Message format | `RFC 822 message` or `JSON` (see below) | RFC 822 |
-| Character set | How the bytes of the mail become text in the channel | UTF-8 |
+| Message format | `Plain text (RFC 822)`, `JSON` or `XML` (see below) | Plain text |
+| Attachment content | JSON and XML only: put the attachments themselves (Base64) in the message, or only their name, type and size | Yes |
+| Character set | Plain text: how the bytes of the mail become text. JSON and XML: used for parts that do not name their own character set | UTF-8 |
 
 With login required, at least one user must be defined, and with TLS a keystore file: otherwise the channel does not deploy and says why.
 
@@ -48,7 +49,7 @@ Beyond these settings the channel's usual *Source Settings* apply (queue, respon
 
 ## What the channel receives
 
-### Message format "RFC 822 message" (default)
+### Message format "Plain text (RFC 822)" (default)
 
 The mail exactly as it was sent, with CRLF line endings:
 
@@ -77,19 +78,112 @@ var from = String(mime.getFrom()[0].toString());
 var body = String(mime.getContent());                          // a String for a plain text mail
 ```
 
-For mails with attachments `getContent()` is a `Multipart`; go through its parts (`getBodyPart(i)`).
+For mails with attachments `getContent()` is a `Multipart`; go through its parts (`getBodyPart(i)`). If you would rather not do that yourself, choose JSON or XML.
 
-### Message format "JSON"
+### Message formats "JSON" and "XML"
 
-The envelope and the data as a list of lines. Empty lines are kept, so the boundary between headers and body is still there.
+The connector takes the mail apart for you (MIME, encoded headers such as `=?UTF-8?Q?...?=`, multipart, attachments) and gives the channel the same information in either notation. Use the **JSON** data type or the **XML** data type of the source to match. This mail, sent with a login over TLS and with one attachment:
 
 ```json
-{"MAILFROM":"sender@example.org","RCPTTO":["intake@example.org"],"USER":"mirth","AUTHENTICATION":"SUCCESS",
- "CLIENTIP":"10.0.0.5","HELO":"client.example","TLS":true,
- "DATA":["Subject: Lab result 42","","Hello,",""]}
+{
+  "envelope": {
+    "mailFrom": "jan@bedrijf.nl",
+    "rcptTo": ["piet@example.org"],
+    "user": "mirth",
+    "authentication": "SUCCESS",
+    "clientIp": "10.0.0.5",
+    "helo": "client.example",
+    "tls": true
+  },
+  "messageId": "<abc123@bedrijf.nl>",
+  "date": "2026-05-05T08:00:00Z",
+  "subject": "Rapport mei",
+  "from": [{"name": "Jan Jansen", "address": "jan@bedrijf.nl"}],
+  "to": [{"name": "Bakker, Piet", "address": "piet@example.org"}],
+  "cc": [],
+  "replyTo": [],
+  "headers": [
+    {"name": "From", "value": "Jan Jansen <jan@bedrijf.nl>"},
+    {"name": "To", "value": "\"Bakker, Piet\" <piet@example.org>"},
+    {"name": "Subject", "value": "Rapport mei"},
+    {"name": "Date", "value": "Tue, 05 May 2026 10:00:00 +0200"},
+    {"name": "Message-ID", "value": "<abc123@bedrijf.nl>"},
+    {"name": "MIME-Version", "value": "1.0"},
+    {"name": "Content-Type", "value": "multipart/mixed; boundary=\"b\""}
+  ],
+  "text": "Hallo Piet,\n\nZie de bijlage.",
+  "html": "",
+  "attachments": [
+    {"filename": "rapport.txt", "contentType": "text/plain", "size": 13, "contentId": "", "disposition": "attachment", "content": "T21zZXR0aW5nIG1laQ=="}
+  ]
+}
 ```
 
-`AUTHENTICATION` is `SUCCESS` when the client logged in and `NA` when no login was needed. A client that fails to log in never reaches the channel, so there is no `FAILED`.
+becomes, as XML:
+
+```xml
+<email>
+  <envelope>
+    <mailFrom>jan@bedrijf.nl</mailFrom>
+    <rcptTo><address>piet@example.org</address></rcptTo>
+    <user>mirth</user>
+    <authentication>SUCCESS</authentication>
+    <clientIp>10.0.0.5</clientIp>
+    <helo>client.example</helo>
+    <tls>true</tls>
+  </envelope>
+  <messageId>&lt;abc123@bedrijf.nl&gt;</messageId>
+  <date>2026-05-05T08:00:00Z</date>
+  <subject>Rapport mei</subject>
+  <from><address name="Jan Jansen">jan@bedrijf.nl</address></from>
+  <to><address name="Bakker, Piet">piet@example.org</address></to>
+  <cc/>
+  <replyTo/>
+  <headers>
+    <header name="From">Jan Jansen &lt;jan@bedrijf.nl&gt;</header>
+    <header name="To">"Bakker, Piet" &lt;piet@example.org&gt;</header>
+    <header name="Subject">Rapport mei</header>
+    <header name="Date">Tue, 05 May 2026 10:00:00 +0200</header>
+    <header name="Message-ID">&lt;abc123@bedrijf.nl&gt;</header>
+    <header name="MIME-Version">1.0</header>
+    <header name="Content-Type">multipart/mixed; boundary="b"</header>
+  </headers>
+  <text>Hallo Piet,
+
+Zie de bijlage.</text>
+  <html/>
+  <attachments>
+    <attachment filename="rapport.txt" contentType="text/plain" size="13" contentId="" disposition="attachment">T21zZXR0aW5nIG1laQ==</attachment>
+  </attachments>
+</email>
+```
+
+What is in it:
+
+| Field | Content |
+|---|---|
+| `envelope` | What the SMTP conversation said: sender (`mailFrom`), recipients (`rcptTo`), login, client address, HELO name and whether TLS was used. This can differ from the headers of the mail (Bcc recipients are only here) |
+| `messageId`, `date`, `subject` | From the headers, decoded. `date` is in UTC (ISO 8601); empty when the mail has none |
+| `from`, `to`, `cc`, `replyTo` | Lists of `name` and `address`. An address that cannot be read is kept as it was written |
+| `headers` | All headers, in order, decoded |
+| `text`, `html` | The plain text and the HTML body (with several parts of one kind, joined by a newline). A mail that has only HTML also gets a `text` made from it. Line endings are `
+` |
+| `attachments` | Per attachment `filename`, `contentType`, `size` (bytes), `contentId`, `disposition` and, unless *Attachment Content* is off, `content` in Base64. Inline images and attached mails (`message/rfc822`) are attachments too |
+| `parseError` | Only present when the mail could not be read. `text` then holds the raw mail, so nothing is lost |
+
+`authentication` is `SUCCESS` when the client logged in and `NA` when no login was needed. A client that fails to log in never reaches the channel, so there is no `FAILED`.
+
+Reading it in a transformer, with the JSON data type:
+
+```javascript
+var subject = msg['subject'];
+var sender = msg['from'][0]['address'];
+for (var i = 0; i < msg['attachments'].length; i++) {
+  var att = msg['attachments'][i];             // att['filename'], att['content'] (Base64)
+}
+```
+
+With very large attachments, switch *Attachment Content* off: a message in the channel with Base64 attachments is a third bigger than the mail itself.
 
 ### Source map
 
@@ -170,14 +264,15 @@ logger.smtpreceiver.level = INFO
 The do-it-yourself version (a JavaScript Reader that opens a `ServerSocket`, and a second channel that processes the JSON) can be replaced as follows:
 
 1. Create a channel with **SMTP Receiver** as source. Copy the users of the `logins` array into *Users* (`mirth:123`, one per line) and the port into *Local Port*.
-2. Choose message format **JSON** if the processing channel expects `MAILFROM`, `RCPTTO`, `USER`, `AUTHENTICATION`, `CLIENTIP` and `DATA`, and handle the mail in this channel or send it on with a Channel Writer. Or choose **RFC 822** and parse the mail as shown above.
+2. Choose message format **JSON** (or **XML**) and handle the mail in this channel or send it on with a Channel Writer. The field names are different from the JavaScript version, see the table below. Or choose **Plain text** and parse the mail as shown above.
 3. Remove the deploy and undeploy scripts: the connector opens and closes the port with the channel.
 
 What changes, all for the better:
 
 | The JavaScript version | SMTP Receiver |
 |---|---|
-| Empty lines were dropped from `DATA`, so headers and body could not be told apart | Kept, in both formats |
+| The mail was a list of lines in `DATA`, and empty lines were dropped, so headers and body could not be told apart | The mail is taken apart: `subject`, `from`, `to`, `text`, `html`, `attachments`. Or, as plain text, exactly as it was sent |
+| `MAILFROM`, `RCPTTO`, `USER`, `AUTHENTICATION`, `CLIENTIP` at the top level | In `envelope`, as `mailFrom`, `rcptTo`, `user`, `authentication`, `clientIp` |
 | `MAILFROM` and `RCPTTO` in capitals (`JAN@BEDRIJF.NL`) | As the client wrote them |
 | One client at a time, one mail per connection | Many clients, many mails per connection |
 | A failed login was recorded as `FAILED` and the mail was accepted anyway | A failed login stops the mail; no login, no mail (when login is required) |
@@ -214,12 +309,14 @@ Requirements: a JDK 11+ (the runtime bundled with the engine, `<OIE_HOME>/jre`, 
    ├── smtpreceiver-shared.jar     (settings class, used by server and clients)
    ├── smtpreceiver-server.jar     (SMTP server + receiver)
    ├── smtpreceiver-client.jar     (Swing settings panel)
+   ├── lib/                        (Jakarta Mail, used to take the mail apart)
    └── webadmin/                   (web administrator panel: plugin.json + web/plugin.js)
    ```
 
 ## Design notes (for developers)
 
 - **The SMTP server knows nothing about the engine.** `SmtpServer` and `SmtpSession` only call a `Handler` for each complete message; `SmtpReceiver` is the thin part that turns a message into a `RawMessage` and the channel's result into an SMTP reply. That is what makes the protocol testable on its own, with real clients.
+- **Mail parsing.** JSON and XML come from `EmailParser`, which uses a bundled Jakarta Mail (in `lib/`). Parts are read through their input streams and never with `getContent()`, because the engine ships an older mail library whose mailcap handlers clash with it. `EmailParser` never throws: a mail it cannot read is passed on as raw text with `parseError`.
 - **Package name.** The classes live in `com.mirth.connect.connectors.smtpreceiver`. The engine's XStream allow-list only accepts classes from the `com.mirth.connect.*` family when it reads a channel; a package of your own makes the channel unreadable in the Swing client.
 - **Folder name = `path`.** The `path` attribute in `source.xml` (`smtp-receiver`) must equal the extension folder name; uninstalling and the web administrator both build paths from it.
 - **Null-safe properties.** The engine does not run constructors when it reads a saved channel, so a setting that is added later is null there. The getters of `SmtpReceiverProperties` fall back to the defaults.

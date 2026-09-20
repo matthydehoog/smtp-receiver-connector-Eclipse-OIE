@@ -38,4 +38,13 @@
     </fileSet>
   </fileSets>
 
+
+  <dependencySets>
+    <!-- Mail libraries the engine does not provide (runtime scope excludes the "provided" engine jars) -->
+    <dependencySet>
+      <outputDirectory>/lib</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+      <scope>runtime</scope>
+    </dependencySet>
+  </dependencySets>
 </assembly>

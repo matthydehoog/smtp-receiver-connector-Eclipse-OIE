@@ -22,11 +22,14 @@ const TLS_OPTIONS = [
   { value: "IMPLICIT", label: "Implicit TLS (SMTPS)" }
 ];
 const FORMAT_OPTIONS = [
-  { value: "RFC822", label: "RFC 822 message" },
-  { value: "JSON", label: "JSON" }
+  { value: "RFC822", label: "Plain text (RFC 822)" },
+  { value: "JSON", label: "JSON" },
+  { value: "XML", label: "XML" }
 ];
 const KEYSTORE_TYPES = ["PKCS12", "JKS", "JCEKS"];
 
+// Only JSON and XML take the mail apart, so only they have attachments to put in.
+const isParsed = (p) => p.messageFormat === "JSON" || p.messageFormat === "XML";
 const usesTls = (p) => p.tlsMode === "STARTTLS" || p.tlsMode === "IMPLICIT";
 
 const isNumber = (value, min, max) => {
@@ -82,6 +85,7 @@ export function createSmtpReceiver(platform) {
         maxRecipients: "100",
         timeout: "120",
         messageFormat: "RFC822",
+        includeAttachmentContent: true,
         charset: "UTF-8"
       };
     },
@@ -141,9 +145,18 @@ export function createSmtpReceiver(platform) {
             type: "select",
             width: "220px",
             options: FORMAT_OPTIONS,
-            tooltip: "RFC 822: the mail as it was sent (headers, empty line, body). JSON: the envelope and the data as a list of lines."
+            refresh: true,
+            tooltip: "Plain text: the mail exactly as it was sent (headers, empty line, body). JSON or XML: the mail taken apart into subject, from, to, date, headers, text, html and attachments, with the envelope."
           },
-          { key: "charset", label: "Character Set", type: "text", width: "120px", tooltip: "Used to turn the bytes of the mail into text, for example UTF-8 or ISO-8859-1" }
+          {
+            key: "includeAttachmentContent",
+            label: "Attachment Content",
+            type: "radio",
+            options: YES_NO,
+            visible: isParsed,
+            tooltip: "Put the attachments themselves in the message (Base64). With No only their name, type and size are listed."
+          },
+          { key: "charset", label: "Character Set", type: "text", width: "120px", tooltip: "Plain text: how the bytes of the mail become text, for example UTF-8 or ISO-8859-1. JSON and XML: used for parts of the mail that do not name their own character set." }
         ]
       });
     },

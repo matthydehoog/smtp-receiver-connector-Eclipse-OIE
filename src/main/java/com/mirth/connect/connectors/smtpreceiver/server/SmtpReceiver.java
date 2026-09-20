@@ -56,7 +56,8 @@ public class SmtpReceiver extends SourceConnector {
     private SmtpReceiverProperties connectorProperties;
     private SmtpConfig config;
     private Charset charset;
-    private boolean json;
+    private String format;
+    private boolean attachmentContent;
     private SmtpServer server;
 
     @Override
@@ -91,7 +92,8 @@ public class SmtpReceiver extends SourceConnector {
         } catch (IllegalArgumentException e) {
             throw new ConnectorTaskException("Unknown character set \"" + connectorProperties.getCharset() + "\".");
         }
-        json = SmtpReceiverProperties.FORMAT_JSON.equals(connectorProperties.getMessageFormat());
+        format = connectorProperties.getMessageFormat();
+        attachmentContent = connectorProperties.isIncludeAttachmentContent();
 
         eventController.dispatchEvent(new ConnectorCountEvent(getChannelId(), getMetaDataId(), getSourceName(), ConnectionStatusEventType.IDLE, null, config.maxConnections));
     }
@@ -164,7 +166,7 @@ public class SmtpReceiver extends SourceConnector {
     private SmtpReply receive(SmtpMessage message) {
         eventController.dispatchEvent(new ConnectionStatusEvent(getChannelId(), getMetaDataId(), getSourceName(), ConnectionStatusEventType.RECEIVING, "Message received from " + message.clientAddress + ", processing..."));
 
-        RawMessage rawMessage = new RawMessage(json ? SmtpMessageFormatter.json(message, charset) : SmtpMessageFormatter.rfc822(message, charset));
+        RawMessage rawMessage = new RawMessage(SmtpMessageFormatter.format(message, format, charset, attachmentContent));
         rawMessage.setSourceMap(sourceMap(message));
 
         DispatchResult dispatchResult = null;
