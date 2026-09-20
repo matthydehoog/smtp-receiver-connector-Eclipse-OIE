@@ -1,0 +1,9 @@
+{
+    "id": "connector-smtpreceiver",
+    "name": "SMTP Receiver Connector",
+    "version": "1.0.0",
+    "author": "X Connections",
+    "description": "Settings panel for the SMTP Receiver source connector (web administrator equivalent of the Swing ConnectorSettingsPanel).",
+    "oie": { "apiMin": "4.6" },
+    "client": { "entry": "web/plugin.js" }
+}

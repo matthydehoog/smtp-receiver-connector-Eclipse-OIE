@@ -1,0 +1,17 @@
+<connectorMetaData path="smtp-receiver">
+	<name>SMTP Receiver</name>
+	<author>X Connections</author>
+	<pluginVersion>1.0.0</pluginVersion>
+	<mirthVersion>4.6.0</mirthVersion>
+	<url>https://x-connections.info</url>
+	<description>This connector runs an SMTP server in a channel. Every mail that is sent to it is handed to the channel as an RFC 822 message (or as JSON), with the envelope in the source map. Supports authentication (PLAIN and LOGIN), STARTTLS and implicit TLS.</description>
+	<clientClassName>com.mirth.connect.connectors.smtpreceiver.client.SmtpReceiverPanel</clientClassName>
+	<serverClassName>com.mirth.connect.connectors.smtpreceiver.server.SmtpReceiver</serverClassName>
+	<sharedClassName>com.mirth.connect.connectors.smtpreceiver.shared.SmtpReceiverProperties</sharedClassName>
+	<library type="CLIENT" path="smtpreceiver-client.jar" />
+	<library type="SHARED" path="smtpreceiver-shared.jar" />
+	<library type="SERVER" path="smtpreceiver-server.jar" />
+	<transformers></transformers>
+	<protocol>smtpreceiver</protocol>
+	<type>SOURCE</type>
+</connectorMetaData>
