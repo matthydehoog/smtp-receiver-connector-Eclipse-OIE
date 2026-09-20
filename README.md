@@ -18,6 +18,7 @@ It is the counterpart of the built-in *SMTP Sender*, and a replacement for the d
 
 ## Install
 
+0. Or install it from the [OIE Community Store](https://github.com/gibson9583/oie-community-store), where it is listed as **SMTP Receiver**.
 1. Download `smtp-receiver-connector-<version>.zip` from the [Releases](../../releases) page (or build it, see below).
 2. Settings -> Extensions -> **Install Extension**, choose the zip, restart the engine.
 3. Restart the Swing client. In the web administrator do a hard refresh (Ctrl+F5).
