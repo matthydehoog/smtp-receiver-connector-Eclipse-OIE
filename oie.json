@@ -5,7 +5,7 @@
   "description": "Source connector that runs an SMTP server in a channel. Mail is handed to the channel as plain text (RFC 822), or as JSON or XML with the mail taken apart: envelope, headers, text, HTML and attachments. Supports AUTH PLAIN/LOGIN, STARTTLS and implicit TLS.",
   "type": "connector",
   "ui": ["web", "swing"],
-  "version": "2.0.2",
+  "version": "2.0.3",
   "minEngineVersion": "4.6.0",
   "maxEngineVersion": null,
   "filename": "smtp-receiver-connector-{version}.zip",
