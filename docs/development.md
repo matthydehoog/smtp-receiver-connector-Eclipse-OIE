@@ -67,6 +67,20 @@ mvn clean package
 
 The result is `target/smtp-receiver-connector-<version>.zip`. `package` runs the tests first, which start the server on free ports and talk to it with a real SMTP client; add `-DskipTests` to skip them, or `-o` to build offline.
 
+### Signing
+
+Some Administrator launchers refuse extension jars that are not signed, so releases sign the shared, server and client jars (`maven-jarsigner-plugin`, just before the zip is made) with the X Connections code-signing key: a self-signed certificate, timestamped by DigiCert so the signature stays valid after the certificate expires.
+
+Signing is off unless a keystore is given:
+
+```bash
+mvn clean package -Dsign.keystore=/path/to/codesign.p12 -Dsign.storepass=...
+```
+
+or with `sign.skip=false`, `sign.keystore` and `sign.storepass` in a profile of `~/.m2/settings.xml`. The alias is `x-connections` (`-Dsign.alias` to change it). The build verifies the signatures and fails if one is missing. Check a zip by hand with `jarsigner -verify -certs smtpreceiver-client.jar`.
+
+There is no build workflow, so build the release zip on a machine that has the key, and check it with `jarsigner` before you publish it. The keystore itself is never committed.
+
 ### What is in the zip
 
 ```
