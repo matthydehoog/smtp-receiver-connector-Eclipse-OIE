@@ -26,6 +26,25 @@ It is the counterpart of the built-in *SMTP Sender*, and a replacement for the d
 
 If the installer refuses because the extension already exists, uninstall the old version first and restart.
 
+### Administrator launchers
+
+Since 2.0.3 the plugin's jars are signed with the X Connections code-signing certificate. The certificate is self-signed. Launchers differ in how they treat that:
+
+- **The Open Integration Engine launcher and the BridgeLink launcher** don't check jar signatures and load the plugin as it is. We advise using one of these.
+- **The Mirth Connect Administrator Launcher (MCAL)** from NextGen is not open source. It checks every jar and only trusts NextGen's own certificates and certificates from a public certificate authority. It refuses self-signed jars, and unsigned ones from older versions, with this error:
+
+  ```
+  Error verifying entry "META-INF/MANIFEST.MF" in JAR file smtpreceiver-client.jar
+  ```
+
+  To use MCAL anyway, add this line to `launcher.vmoptions` in the MCAL folder (by default `C:Program FilesMirth Connect Administrator Launcher`; editing it needs administrator rights), then restart MCAL:
+
+  ```
+  -Dallow-self-signed
+  ```
+
+  Starting MCAL with `--allow-self-signed` (or `-k`) does the same. MCAL then accepts jars signed with any self-signed certificate, from any server, so only do this on machines that connect to servers you trust. Versions before 2.0.3 are unsigned and fail in MCAL even with this option.
+
 ## Settings
 
 | Setting | Meaning | Default |
